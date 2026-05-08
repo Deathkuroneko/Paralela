@@ -1,13 +1,47 @@
-#include <iostream>
-#include <fmt/core.h>
+#include <SFML/Audio.hpp>
+#include <SFML/Graphics.hpp>
 
-int main(){
-    int valor = 10; 
-    std::printf("Hola mundo %f\n", valor);
+int main()
+{
+    // Create the main window
+    sf::RenderWindow window(sf::VideoMode({800, 600}), "SFML window");
 
-    //fmt infiere y reconoce el tipo de dato
-    fmt::println("Hola mundo con fmt: {}", valor);
+    // Load a sprite to display
+    const sf::Texture texture("textura.jpg");
+    sf::Sprite sprite(texture);
 
-    return 0;
+    // Create a graphical text to display
+    const sf::Font font("arial.ttf");
+    sf::Text text(font, "Hello SFML, Ejemplo 01", 50);
+    text.setFillColor(sf::Color::Blue);
+
+    // Load a music to play
+    //sf::Music music("nice_music.ogg");
+
+    // Play the music
+    //music.play();
+
+    // Start the game loop
+    while (window.isOpen())
+    {
+        // Process events
+        while (const std::optional event = window.pollEvent())
+        {
+            // Close window: exit
+            if (event->is<sf::Event::Closed>())
+                window.close();
+        }
+
+        // Clear screen
+        window.clear();
+
+        // Draw the sprite
+        window.draw(sprite);
+
+        // Draw the string
+        window.draw(text);
+
+        // Update the window
+        window.display();
+    }
 }
-
