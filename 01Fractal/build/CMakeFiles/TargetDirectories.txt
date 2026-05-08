@@ -1,0 +1,3 @@
+C:/tools/Programacion_Paralela_2026/01Fractal/build/CMakeFiles/Fractal_Julia.dir
+C:/tools/Programacion_Paralela_2026/01Fractal/build/CMakeFiles/edit_cache.dir
+C:/tools/Programacion_Paralela_2026/01Fractal/build/CMakeFiles/rebuild_cache.dir

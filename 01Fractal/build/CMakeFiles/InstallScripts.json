@@ -1,0 +1,11 @@
+{
+	"Configs" : 
+	[
+		"Debug"
+	],
+	"InstallScripts" : 
+	[
+		"C:/tools/Programacion_Paralela_2026/01Fractal/build/cmake_install.cmake"
+	],
+	"Parallel" : false
+}
