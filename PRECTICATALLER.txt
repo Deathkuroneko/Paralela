@@ -1,0 +1,1190 @@
+----------------------------------------------------------------------------------------
+blending
+----------------------------------------------------------------------------------------
+
+package efectos;
+
+import java.awt.Graphics2D;
+import java.awt.Image;
+import java.awt.image.BufferedImage;
+import java.io.File;
+
+import javax.imageio.ImageIO;
+
+public class Blending {
+
+	public static void main(String[] args) {
+
+		// Variables
+		int ancho, alto;
+		int pixel1, pixel2, pixelBlend;
+		int r, g, b;
+		int r1, g1, b1;
+		int r2, g2, b2;
+
+		// Nivel de transparencia
+		float alpha = 0.5f;
+
+		// Máscara para extraer canales RGB
+		int mascara = 0xFF;
+
+		// Archivos
+		File file1 = new File("imagenes/fondo.jpg");
+		File file2 = new File("imagenes/superpuesta.jpg");
+		File file3 = new File("imagenes/perro.jpg");
+		File fileSalida = new File("imagenes/transparencia5.png");
+
+		try {
+
+			// Leer imágenes
+			BufferedImage buffer1 = ImageIO.read(file1);
+			BufferedImage buffer2 = ImageIO.read(file2);
+			BufferedImage buffer3 = ImageIO.read(file3);
+
+			// Obtener dimensiones
+			ancho = buffer1.getWidth();
+			alto = buffer1.getHeight();
+
+			// escalamiento
+
+			// copia escalada del buffer2
+			Image imgTemp = buffer2.getScaledInstance(ancho, alto, Image.SCALE_FAST);
+
+			// crear la imagen
+			BufferedImage bufferTemp = new BufferedImage(ancho, alto, BufferedImage.TYPE_INT_RGB);
+
+			Graphics2D grTemp = bufferTemp.createGraphics();
+			grTemp.drawImage(imgTemp, 0, 0, null);
+			grTemp.dispose();
+
+			// asignacion
+			buffer2 = bufferTemp;
+
+			// Crear imagen resultado
+			BufferedImage bufferBlend = new BufferedImage(ancho, alto, BufferedImage.TYPE_INT_RGB);
+
+			// Recorrer imagen
+			for (int y = 0; y < alto; y++) {
+
+				for (int x = 0; x < ancho; x++) {
+
+					// Obtener píxeles
+					pixel1 = buffer1.getRGB(x, y);
+					pixel2 = buffer2.getRGB(x, y);
+
+					// Extraer canales RGB imagen 1
+					r1 = (pixel1 >> 16) & mascara;
+					g1 = (pixel1 >> 8) & mascara;
+					b1 = pixel1 & mascara;
+
+					// Extraer canales RGB imagen 2
+					r2 = (pixel2 >> 16) & mascara;
+					g2 = (pixel2 >> 8) & mascara;
+					b2 = pixel2 & mascara;
+
+					// -------- BLENDING --------
+//                    r = (int) ((1 - alpha) * r1 + alpha * r2);
+//                    g = (int) ((1 - alpha) * g1 + alpha * g2);
+//                    b = (int) ((1 - alpha) * b1 + alpha * b2);
+					// -------- BLENDING SUMATIVO--------
+//                    r= Math.min(255,(r1+r2));
+//                    g= Math.min(255,(g1+g2));
+//                    b= Math.min(255,(b1+b2));
+					// -------- BLENDING MULTIPLICATIVO--------
+					r = (r1 * r2) / 255;
+					g = (g1 * g2) / 255;
+					b = (b1 * b2) / 255;
+					// Reconstruir pixel
+					pixelBlend = (r << 16) | (g << 8) | b;
+
+					// Guardar pixel en imagen resultado
+					bufferBlend.setRGB(x, y, pixelBlend);
+				}
+			}
+
+			// Guardar imagen final
+			ImageIO.write(bufferBlend, "png", fileSalida);
+
+			System.out.println("Blending realizado correctamente");
+
+		} catch (Exception e) {
+
+			System.out.println("Error: " + e.getMessage());
+		}
+	}
+}
+----------------------------------------------------------------------------------------
+				colores
+----------------------------------------------------------------------------------------
+
+package efectos;
+
+import java.awt.image.BufferedImage;
+import java.io.File;
+import java.util.Iterator;
+
+import javax.imageio.ImageIO;
+
+public class Colores {
+	public static BufferedImage aplicarFiltro(BufferedImage img, float[][] matriz) {
+
+		int ancho = img.getWidth();
+		int alto = img.getHeight();
+
+		BufferedImage salida = new BufferedImage(ancho, alto, BufferedImage.TYPE_INT_ARGB);
+
+		int mascara = 0xFF;
+		for (int y = 0; y < alto; y++) {
+		    for (int x = 0; x < ancho; x++) {
+		        int pixel = img.getRGB(x, y);
+
+		        int r = (pixel >> 16) & mascara;
+		        int g = (pixel >> 8) & mascara;
+		        int b = (pixel) & mascara;
+
+		        // 1. Calcular nuevos valores
+		        int r1 = (int) (matriz[0][0] * r + matriz[0][1] * g + matriz[0][2] * b + matriz[0][3]*255);
+		        int g1 = (int) (matriz[1][0] * r + matriz[1][1] * g + matriz[1][2] * b + matriz[1][3]*255);
+		        int b1 = (int) (matriz[2][0] * r + matriz[2][1] * g + matriz[2][2] * b + matriz[2][3]*255);
+
+		        // 2. IMPORTANTE: Limitar valores ANTES de armar el píxel
+		        r1 = clamp(r1);
+		        g1 = clamp(g1);
+		        b1 = clamp(b1);
+
+		        // 3. Armar el píxel incluyendo el canal ALFA (0xFF..) para que no sea transparente
+		        int pixelNuevo = (0xFF << 24) | (r1 << 16) | (g1 << 8) | b1;
+
+		        salida.setRGB(x, y, pixelNuevo);
+		    }
+		}
+		return salida;
+	}
+
+	// limitar el RGB 0-255
+	public static int clamp(int valor) {
+		return Math.min(255, Math.max(0, valor));
+	}
+
+	public static void main(String[] args) {
+
+		try {
+
+			File file = new File("imagenes/paisaje.jpg");
+			File salida = new File("imagenes/salida.png");
+
+			BufferedImage imagen = ImageIO.read(file);
+
+			// =========================
+			// MATRICES (FILTROS)
+			// =========================
+
+			float[][] sepia = {
+                    {0.393f, 0.769f, 0.189f},
+                    {0.349f, 0.686f, 0.168f},
+                    {0.272f, 0.534f, 0.131f}
+            };
+
+            float[][] blancoNegro = {
+                    {0.299f, 0.587f, 0.114f},
+                    {0.299f, 0.587f, 0.114f},
+                    {0.299f, 0.587f, 0.114f}
+            };
+
+            float[][] negativo = {
+                    {-1f, 0f, 0f,1.0f},
+                    {0f, -1f, 0f,1.0f},
+                    {0f, 0f, -1f,1.0f}
+            };
+            float[][] gris = {
+            	    {0.2126f, 0.7152f, 0.0722f},
+            	    {0.2126f, 0.7152f, 0.0722f},
+            	    {0.2126f, 0.7152f, 0.0722f}
+           };
+           float[][] sepia2 = {
+            	    {0.393f, 0.769f, 0.189f},
+            	    {0.349f, 0.686f, 0.168f},
+            	    {0.272f, 0.534f, 0.131f}
+            };
+           float[][] azulFrio = {
+        		    {0.1f, 0.2f, 0.5f},
+        		    {0.1f, 0.2f, 0.6f},
+        		    {0.2f, 0.3f, 0.8f}
+        	};
+           float[][] rojoIntenso = {
+        		    {1.2f, 0.0f, 0.0f, 0.0f},
+        		    {0.0f, 0.3f, 0.0f, 0.0f},
+        		    {0.0f, 0.0f, 0.3f, 0.0f}
+        	};
+           float[][] verdeNaturaleza = {
+        		    {0.2f, 0.8f, 0.2f,0.0f},
+        		    {0.1f, 1.0f, 0.1f,0.0f},
+        		    {0.1f, 0.6f, 0.1f,0.0f}
+        	};
+           float[][] vintage = {
+        		    {0.9f, 0.5f, 0.2f},
+        		    {0.3f, 0.8f, 0.2f},
+        		    {0.2f, 0.3f, 0.7f}
+        	};
+           float[][] altoContraste = {
+        		    {1.5f, 0.0f, 0.0f},
+        		    {0.0f, 1.5f, 0.0f},
+        		    {0.0f, 0.0f, 1.5f}
+        	};
+           float[][] desaturado = {
+        		    {0.5f, 0.5f, 0.5f},
+        		    {0.5f, 0.5f, 0.5f},
+        		    {0.5f, 0.5f, 0.5f}
+        	};
+           float[][] hielo = {
+        		    {0.3f, 0.4f, 0.3f},
+        		    {0.2f, 0.5f, 0.3f},
+        		    {0.2f, 0.3f, 0.6f}
+        	};
+           float[][] fuego = {
+        		    {1.2f, 0.3f, 0.0f},
+        		    {0.8f, 0.2f, 0.0f},
+        		    {0.5f, 0.1f, 0.0f}
+        	};
+			// =========================
+			// APLICAR FILTRO AQUÍ
+			// =========================
+			BufferedImage resultado = aplicarFiltro(imagen, rojoIntenso);
+			// Cambia aquí: sepia / blancoNegro / negativo
+
+			ImageIO.write(resultado, "png", salida);
+
+			System.out.println("✔ Proceso terminado correctamente");
+
+		} catch (Exception e) {
+			System.out.println("Error: " + e.getMessage());
+		}
+	}
+
+}
+package efectos;
+
+import java.awt.image.BufferedImage;
+import java.io.File;
+import java.util.Iterator;
+
+import javax.imageio.ImageIO;
+
+public class Colores {
+	public static BufferedImage aplicarFiltro(BufferedImage img, float[][] matriz) {
+
+		int ancho = img.getWidth();
+		int alto = img.getHeight();
+
+		BufferedImage salida = new BufferedImage(ancho, alto, BufferedImage.TYPE_INT_ARGB);
+
+		int mascara = 0xFF;
+		for (int y = 0; y < alto; y++) {
+		    for (int x = 0; x < ancho; x++) {
+		        int pixel = img.getRGB(x, y);
+
+		        int r = (pixel >> 16) & mascara;
+		        int g = (pixel >> 8) & mascara;
+		        int b = (pixel) & mascara;
+
+		        // 1. Calcular nuevos valores
+		        int r1 = (int) (matriz[0][0] * r + matriz[0][1] * g + matriz[0][2] * b + matriz[0][3]*255);
+		        int g1 = (int) (matriz[1][0] * r + matriz[1][1] * g + matriz[1][2] * b + matriz[1][3]*255);
+		        int b1 = (int) (matriz[2][0] * r + matriz[2][1] * g + matriz[2][2] * b + matriz[2][3]*255);
+
+		        // 2. IMPORTANTE: Limitar valores ANTES de armar el píxel
+		        r1 = clamp(r1);
+		        g1 = clamp(g1);
+		        b1 = clamp(b1);
+
+		        // 3. Armar el píxel incluyendo el canal ALFA (0xFF..) para que no sea transparente
+		        int pixelNuevo = (0xFF << 24) | (r1 << 16) | (g1 << 8) | b1;
+
+		        salida.setRGB(x, y, pixelNuevo);
+		    }
+		}
+		return salida;
+	}
+
+	// limitar el RGB 0-255
+	public static int clamp(int valor) {
+		return Math.min(255, Math.max(0, valor));
+	}
+
+	public static void main(String[] args) {
+
+		try {
+
+			File file = new File("imagenes/paisaje.jpg");
+			File salida = new File("imagenes/salida.png");
+
+			BufferedImage imagen = ImageIO.read(file);
+
+			// =========================
+			// MATRICES (FILTROS)
+			// =========================
+
+			float[][] sepia = {
+                    {0.393f, 0.769f, 0.189f},
+                    {0.349f, 0.686f, 0.168f},
+                    {0.272f, 0.534f, 0.131f}
+            };
+
+            float[][] blancoNegro = {
+                    {0.299f, 0.587f, 0.114f},
+                    {0.299f, 0.587f, 0.114f},
+                    {0.299f, 0.587f, 0.114f}
+            };
+
+            float[][] negativo = {
+                    {-1f, 0f, 0f,1.0f},
+                    {0f, -1f, 0f,1.0f},
+                    {0f, 0f, -1f,1.0f}
+            };
+            float[][] gris = {
+            	    {0.2126f, 0.7152f, 0.0722f},
+            	    {0.2126f, 0.7152f, 0.0722f},
+            	    {0.2126f, 0.7152f, 0.0722f}
+           };
+           float[][] sepia2 = {
+            	    {0.393f, 0.769f, 0.189f},
+            	    {0.349f, 0.686f, 0.168f},
+            	    {0.272f, 0.534f, 0.131f}
+            };
+           float[][] azulFrio = {
+        		    {0.1f, 0.2f, 0.5f},
+        		    {0.1f, 0.2f, 0.6f},
+        		    {0.2f, 0.3f, 0.8f}
+        	};
+           float[][] rojoIntenso = {
+        		    {1.2f, 0.0f, 0.0f, 0.0f},
+        		    {0.0f, 0.3f, 0.0f, 0.0f},
+        		    {0.0f, 0.0f, 0.3f, 0.0f}
+        	};
+           float[][] verdeNaturaleza = {
+        		    {0.2f, 0.8f, 0.2f,0.0f},
+        		    {0.1f, 1.0f, 0.1f,0.0f},
+        		    {0.1f, 0.6f, 0.1f,0.0f}
+        	};
+           float[][] vintage = {
+        		    {0.9f, 0.5f, 0.2f},
+        		    {0.3f, 0.8f, 0.2f},
+        		    {0.2f, 0.3f, 0.7f}
+        	};
+           float[][] altoContraste = {
+        		    {1.5f, 0.0f, 0.0f},
+        		    {0.0f, 1.5f, 0.0f},
+        		    {0.0f, 0.0f, 1.5f}
+        	};
+           float[][] desaturado = {
+        		    {0.5f, 0.5f, 0.5f},
+        		    {0.5f, 0.5f, 0.5f},
+        		    {0.5f, 0.5f, 0.5f}
+        	};
+           float[][] hielo = {
+        		    {0.3f, 0.4f, 0.3f},
+        		    {0.2f, 0.5f, 0.3f},
+        		    {0.2f, 0.3f, 0.6f}
+        	};
+           float[][] fuego = {
+        		    {1.2f, 0.3f, 0.0f},
+        		    {0.8f, 0.2f, 0.0f},
+        		    {0.5f, 0.1f, 0.0f}
+        	};
+			// =========================
+			// APLICAR FILTRO AQUÍ
+			// =========================
+			BufferedImage resultado = aplicarFiltro(imagen, rojoIntenso);
+			// Cambia aquí: sepia / blancoNegro / negativo
+
+			ImageIO.write(resultado, "png", salida);
+
+			System.out.println("✔ Proceso terminado correctamente");
+
+		} catch (Exception e) {
+			System.out.println("Error: " + e.getMessage());
+		}
+	}
+
+}
+----------------------------------------------------------------------------------------
+				Convolucion NOrmal
+----------------------------------------------------------------------------------------
+
+package efectos;
+
+import java.awt.image.BufferedImage;
+import java.io.File;
+
+import javax.imageio.ImageIO;
+
+public class Convolucion {
+	public static void main(String[] args) {
+		File file = new File("imagenes/perro.jpg");
+		File file2 = new File("imagenes/modificado.jpg");
+
+		try {
+			BufferedImage buffer = ImageIO.read(file);
+			for (int i = 0; i < 10; i++) {
+				buffer = convolucionFiltro(buffer);
+
+			}
+
+			ImageIO.write(buffer, "jpg", file2);
+			System.out.println("Correcto");
+
+		} catch (Exception e) {
+			// TODO: handle exception
+			System.out.println("Error: " + e.getMessage());
+		}
+
+	}
+
+	public static BufferedImage convolucionFiltro(BufferedImage buffer) {
+		int ancho, alto, pixel, pixelNuevo, a, r, g, b;
+		float sumaR, sumaG, sumaB;
+		int mascara = 0xFF;
+
+		
+		 float[][] matrizConv = { {1f/9, 1f/9, 1f/9}, 
+				 					{1f/9, 1f/9, 1f/9}, 
+				 					{1f/9, 1f/9, 1f/9}
+		 };
+		 
+		/*
+		float[] matrizConv = { 1f / 81, 1f / 81, 1f / 81, 1f / 81, 1f / 81, 1f / 81, 1f / 81, 1f / 81, 1f / 81, 1f / 81,
+				1f / 81, 1f / 81, 1f / 81, 1f / 81, 1f / 81, 1f / 81, 1f / 81, 1f / 81, 1f / 81, 1f / 81, 1f / 81,
+				1f / 81, 1f / 81, 1f / 81, 1f / 81, 1f / 81, 1f / 81, 1f / 81, 1f / 81, 1f / 81, 1f / 81, 1f / 81,
+				1f / 81, 1f / 81, 1f / 81, 1f / 81, 1f / 81, 1f / 81, 1f / 81, 1f / 81, 1f / 81, 1f / 81, 1f / 81,
+				1f / 81, 1f / 81, 1f / 81, 1f / 81, 1f / 81, 1f / 81, 1f / 81, 1f / 81, 1f / 81, 1f / 81, 1f / 81,
+				1f / 81, 1f / 81, 1f / 81, 1f / 81, 1f / 81, 1f / 81, 1f / 81, 1f / 81, 1f / 81, 1f / 81, 1f / 81,
+				1f / 81, 1f / 81, 1f / 81, 1f / 81, 1f / 81, 1f / 81, 1f / 81, 1f / 81, 1f / 81, 1f / 81, 1f / 81,
+				1f / 81, 1f / 81, 1f / 81, 1f / 81, 1f / 81 };
+
+		/*
+		 * float[] matrizConv = { 0, 1, 0, 1, 4, 1, 0, 1, 0 };
+		 */
+		//int indice = 0;
+		ancho = buffer.getWidth();
+		alto = buffer.getHeight();
+
+		BufferedImage buffer2 = new BufferedImage(ancho, alto, BufferedImage.TYPE_INT_RGB);
+		for (int y = 4; y < alto - 4; y++) {
+			for (int x = 4; x < ancho - 4; x++) {
+				// reinicio por cada pixel
+				sumaR = sumaG = sumaB = 0;
+
+				for (int j = -1; j < 2; j++) {
+					for (int i = -1; i < 2; i++) {
+						pixel = buffer.getRGB(x + i, y + j);
+
+						// a = (pixel >> 24) & mascara;
+						r = (pixel >> 16) & mascara;
+						g = (pixel >> 8) & mascara;
+						b = (pixel >> 0) & mascara;
+
+						sumaR += r * matrizConv[i+1][j+1];
+						sumaG += g * matrizConv[i+i][j+i];
+						sumaB += b * matrizConv[i+1][j+1];
+
+						//indice++;
+
+					}
+				}
+				r = (int) sumaR;
+				g = (int) sumaG;
+				b = (int) sumaB;
+
+				pixelNuevo = (r << 16) | (g << 8) | (b << 0);
+				buffer2.setRGB(x, y, pixelNuevo);
+			}
+		}
+		return buffer2;
+	}
+}
+------------------------------------------------------------------------------------------------------
+convoloOp
+------------------------------------------------------------------------------------------------------
+package efectos;
+
+import java.awt.image.BufferedImage;
+import java.awt.image.ConvolveOp;
+import java.awt.image.Kernel;
+import java.io.File;
+
+import javax.imageio.ImageIO;
+
+public class ConvolucionOp {
+	public static void main(String[] args) {
+		File file = new File("imagenes/perro.jpg");
+		File file2 = new File("imagenes/Oscurecer.jpg");
+
+		try {
+			BufferedImage buffer = ImageIO.read(file);
+			BufferedImage buffer2 = buffer;
+			for (int i = 0; i < 3; i++) {
+				buffer2 = convolucionFiltro(buffer2);
+
+			}
+
+			ImageIO.write(buffer2, "jpg", file2);
+			System.out.println("Correcto");
+
+		} catch (Exception e) {
+			// TODO: handle exception
+			System.out.println("Error: " + e.getMessage());
+		}
+
+	}
+
+	public static BufferedImage convolucionFiltro(BufferedImage img) {
+		
+		
+		float[] matriz = Kernels.kOscurecer;
+		
+		Kernel kernel = new Kernel((int)Math.sqrt(matriz.length), (int)Math.sqrt(matriz.length), matriz);
+		
+		ConvolveOp op = new ConvolveOp(kernel, ConvolveOp.EDGE_NO_OP, null);
+		
+		BufferedImage buffer2 = op.filter(img, null);
+		
+
+		
+		 
+
+		return buffer2;
+	}
+}
+------------------------------------------------------------------------------------------------
+								HISTORIGRAMA
+-------------------------------------------------------------------------------------------------
+
+package efectos;
+
+import java.awt.BasicStroke;
+import java.awt.Color;
+import java.awt.Graphics;
+import java.awt.Graphics2D;
+import java.awt.image.BufferedImage;
+import java.io.File;
+import java.util.Arrays;
+
+import javax.imageio.ImageIO;
+
+public class Histograma {
+	public static void main(String[] args) {
+		// Declaración de variables para dimensiones, el color del píxel y sus canales individuales
+		int ancho, alto, pixel, pixelNuevo, a, r, g, b;
+		int r1,g1,b1;
+		
+		// La máscara 0xFF equivale a 255 en decimal o 11111111 en binario.
+		// Se usa para "limpiar" los bits y quedarnos solo con los últimos 8 bits (un canal).
+		int mascara = 0xFF;
+	
+
+		// Referencia al archivo físico de entrada
+		File file = new File("imagenes/cielo.jpg");
+		// Referencia al archivo físico donde guardaremos el resultado
+		File file2 = new File("imagenes/cieloGreen.jpg"); 
+
+		try {
+	
+			// ImageIO.read carga la imagen del disco y la convierte en un objeto manipulable
+			BufferedImage buffer = ImageIO.read(file);
+			
+			// Obtenemos el tamaño de la imagen original para replicarlo en la salida
+			ancho = buffer.getWidth();
+			alto = buffer.getHeight();
+			
+			//generar un histograma
+			int anchoHisto = 800;
+			int altoHisto =600;
+			int []histoRed = new int [256];//tonos
+
+			// Creamos un nuevo "lienzo" en memoria. 
+			// TYPE_INT_ARGB: Indica que cada píxel se guarda como un entero con Alpha, Rojo, Verde y Azul.
+			BufferedImage bufer2 = new BufferedImage(anchoHisto, altoHisto, BufferedImage.TYPE_INT_RGB);
+			
+			//java instrucciones histograma
+			Graphics2D gr= bufer2.createGraphics();
+			//color
+			gr.setColor(Color.WHITE);
+			
+			gr.setStroke(new BasicStroke(2));
+			//relleno desde donde a donde 
+			gr.fillRect(0,0, anchoHisto, altoHisto);
+			// Iniciamos el recorrido de la matriz de la imagen (eje X para columnas)
+			for(int y = 0; y < alto; y++) {
+				// Recorrido del eje Y para filas
+				for(int x = 0; x < ancho; x++) {
+					
+					// getRGB obtiene el color empaquetado del píxel en la coordenada actual
+					pixel = buffer.getRGB(x, y);
+
+					/* DESEMPAQUETADO (Bit Shifting):
+					   Cada canal ocupa 8 bits en un entero de 32 bits.
+					   Usamos >> (desplazamiento a la derecha) para mover el canal al final 
+					   y & mascara para extraer únicamente esos 8 bits.
+					*/
+					//a = (pixel >> 24) & mascara; // Alpha está en los bits 24-31
+					r = (pixel >> 16) & mascara; // Rojo está en los bits 16-23
+					g = (pixel >> 8)  & mascara; // Verde está en los bits 8-15
+					b = (pixel >> 0)  & mascara; // Azul está en los bits 0-7
+					
+					histoRed[g]++;
+					
+					
+				}
+			}
+			//escala
+			float escalaX = anchoHisto/256.0f;
+			//afuera por que solo es un canal
+			float escalaY = altoHisto * (1.0f/maximo(histoRed));
+			//dibujar punto
+			gr.setColor(Color.GREEN);
+			for (int i = 1; i < histoRed.length; i++) {
+				int x1= (int)(escalaX*(i-1));
+				int y1= altoHisto -(int)(escalaY*histoRed[i-1]);
+				
+				int x2= (int)(escalaX*(i));
+				int y2= altoHisto -(int)(escalaY*histoRed[i]);
+				gr.drawLine(x1,y1,x2,y2);
+			}
+			gr.dispose();
+			//imprimir(histoRed);
+			// ImageIO.write toma el buffer procesado y lo codifica como un archivo PNG en el disco
+			ImageIO.write(bufer2, "jpg", file2);
+			System.out.println("Imagen creada correctamente ");
+			// Mensaje de control para saber que el programa terminó sin errores
+			System.out.println("Histograma creado correctamente: ");
+			maximo(histoRed);
+			
+		} catch (Exception e) {
+			// Si el archivo no existe o no hay permisos, se captura el error aquí
+			System.out.println("Error: " + e.getMessage());
+		}
+	}
+
+	private static void imprimir(int[]h) {
+		for (int i = 0; i < h.length; i++) {
+			System.out.println(i+": "+h[i]);
+		}
+	}
+	private static int maximo(int[]h) {
+		int aux = h[0];
+		int indice  =0;
+		for (int i = 1; i < h.length; i++) {
+			if(h[i]>aux) {
+				aux= h[i];
+				indice = i;
+			}
+		}
+		System.out.println(indice + ": "+ aux);
+		System.out.println("Directo: "+Arrays.stream(h).max().getAsInt());
+		return aux;
+	}
+}
+---------------------------------------------------------------------------------------------------------------
+FILTROS
+---------------------------------------------------------------------------------------------------------------
+package efectos;
+
+import java.awt.image.BufferedImage;
+import java.io.File;
+
+import javax.imageio.ImageIO;
+
+public class Filtros {
+	public static void main(String[] args) {
+		int ancho, alto, pixel, pixelNuevo, a, r, g, b;
+		int mascara = 0xFF;
+		File file = new File("imagenes/paisaje.png");
+		File file2 = new File("imagenes/modificadoVerdeProfe.png");
+		float factor = 100;
+		
+	
+		
+		
+		try {
+			BufferedImage buffer = ImageIO.read(file);
+			ancho = buffer.getWidth();
+			alto = buffer.getHeight();
+			
+			
+			
+			BufferedImage buffer2 = new BufferedImage(ancho, alto, BufferedImage.TYPE_INT_ARGB);
+			for(int x=0; x<ancho; x++) {
+				for(int y=0; y<alto; y++) {
+					pixel = buffer.getRGB(x, y);
+	
+					
+					a = (pixel >> 24) & mascara;
+					r = (pixel >> 16) & mascara;
+					g = (pixel >> 8) & mascara;
+					b = (pixel >> 0) & mascara;
+					//----------------------
+					//r=(int)(Math.min(255, r+factor));
+					//g=(int)(Math.min(255, g+factor));
+					//profe
+					a=(int)(a>1?a*2:a*0.6);
+					r=(int)(r*0.002);
+					g=(int)(g*0.7);
+					b=(int)(b*0.01);
+					
+					//---------------------
+					
+					
+					pixelNuevo = (a<<24) | (r<<16) | (g<<8) | (b<<0);
+					buffer2.setRGB(x, y, pixelNuevo);
+				}
+			}
+			ImageIO.write(buffer2, "png", file2);
+			System.out.println("correcto");
+			
+		} catch (Exception e) {
+			// TODO: handle exception
+			System.out.println("error: "+e.getMessage());
+		}
+	}
+
+}
+---------------------------------------------------------------------------------------------
+			imagen
+-------------------------------------------------------------------------------------------------
+package efectos;
+
+import java.awt.image.BufferedImage;
+import java.io.File;
+
+import javax.imageio.ImageIO;
+
+public class Imagen {
+	public static void main(String[] args) {
+		int ancho, alto, pixel, pixelNuevo, a, r, g, b;
+		int mascara = 0xFF;
+		File file = new File("imagenes/paisaje.png");
+		File file2 = new File("imagenes/modificado.png");
+		float[] hsv = new float[3];
+		float h,s,v;
+		float factorS = 1.3f;
+		float factorB = 0.9f;
+		float factorT = 0.8f;
+		
+		int mascaraRecorteBitBinario = 0b1111; //en binario 4 bits
+		int mascaraRecorteBitDecimal = 15; //en binario 4 bits
+		int mascaraRecorteBitHexa = 0xF; //en binario 4 bits
+		
+		
+		try {
+			BufferedImage buffer = ImageIO.read(file);
+			ancho = buffer.getWidth();
+			alto = buffer.getHeight();
+			
+			
+			
+			BufferedImage buffer2 = new BufferedImage(ancho, alto, BufferedImage.TYPE_INT_ARGB);
+			for(int x=0; x<ancho; x++) {
+				for(int y=0; y<alto; y++) {
+					pixel = buffer.getRGB(x, y);
+	
+					
+					a = (pixel >> 24) & mascara;
+					r = (pixel >> 16) & mascara;
+					g = (pixel >> 8) & mascara;
+					b = (pixel >> 0) & mascara;
+					
+					a = (int)(Math.min(255, a*factorT));
+					//recorte a 4 bits
+					r=(r>>4) & mascaraRecorteBitBinario;
+					g=(g>>4) & mascaraRecorteBitDecimal;
+					b=(b>>4) & mascaraRecorteBitHexa;
+					
+					// 2. Ahora estiramos el valor (la regla de tres)
+					// Usamos 15.0f para que la división sea precisa antes de convertir a int
+					r = (int)((r * 255.0f) / 15.0f);
+					g = (int)((g * 255.0f) / 15.0f);
+					b = (int)((b * 255.0f) / 15.0f);
+					
+					
+					//estirar con la formula =(color*255)/19 
+					
+					
+					//----------- modificaciones
+					//hsv = Color.RGBtoHSB(r, g, b, null);
+					
+					/*
+					 * h = hsv[0];
+					s = hsv[1];
+					v = hsv[2];
+					
+					s = Math.min(1,s*factorS);
+					v = Math.min(1,v*factorB);
+					pixelNuevo = Color.HSBtoRGB(h, s, v); //v
+					
+					pixelNuevo = (a<<24) | (pixelNuevo & 0x00FFFFFF);
+					 * 
+					 */
+					
+							
+					
+					//-------------------------
+					pixelNuevo = (a<<24) | (r<<16) | (g<<8) | (b<<0);
+					buffer2.setRGB(x, y, pixelNuevo);
+				}
+			}
+			ImageIO.write(buffer2, "png", file2);
+			System.out.println("correcto");
+			
+		} catch (Exception e) {
+			// TODO: handle exception
+			System.out.println("error: "+e.getMessage());
+		}
+	}
+	
+	
+}
+--------------------------------------------------------------------------------------------
+Matriz colroes
+-------------------------------------------------------------------------------------------------
+package efectos;
+
+import java.awt.image.BufferedImage;
+import java.io.File;
+
+import javax.imageio.ImageIO;
+
+public class MatricesColores {
+	public static void main(String[] args) {
+		// Declaración de variables para dimensiones, el color del píxel y sus canales individuales
+		int ancho, alto, pixel, pixelNuevo, a, r, g, b;
+		int r1,g1,b1;
+		
+		// La máscara 0xFF equivale a 255 en decimal o 11111111 en binario.
+		// Se usa para "limpiar" los bits y quedarnos solo con los últimos 8 bits (un canal).
+		int mascara = 0xFF;
+	
+
+		// Referencia al archivo físico de entrada
+		File file = new File("imagenes/paisaje.jpg");
+		// Referencia al archivo físico donde guardaremos el resultado
+		File file2 = new File("imagenes/MatrizSepia.jpg"); 
+
+		try {
+			float[][] colores = {
+				{0.299f, 0.587f, 0.114f,0.0f},
+				{0.299f, 0.587f, 0.114f,0.0f},
+				{0.299f, 0.587f, 0.114f,0.0f},
+				{0.0f,   0.0f,   0.0f,  1.0f}
+			};
+			float[][] coloresSepia = {
+					{0.393f, 0.769f, 0.189f,0.0f},
+					{0.349f, 0.686f, 0.198f,0.0f},
+					{0.272f, 0.534f, 0.131f,0.0f},
+					{0.0f,   0.0f,   0.0f,  1.0f}
+				};
+			// ImageIO.read carga la imagen del disco y la convierte en un objeto manipulable
+			BufferedImage buffer = ImageIO.read(file);
+			
+			// Obtenemos el tamaño de la imagen original para replicarlo en la salida
+			ancho = buffer.getWidth();
+			alto = buffer.getHeight();
+
+			// Creamos un nuevo "lienzo" en memoria. 
+			// TYPE_INT_ARGB: Indica que cada píxel se guarda como un entero con Alpha, Rojo, Verde y Azul.
+			BufferedImage buffer2 = new BufferedImage(ancho, alto, BufferedImage.TYPE_INT_RGB);
+
+			// Iniciamos el recorrido de la matriz de la imagen (eje X para columnas)
+			for(int y = 0; y < alto; y++) {
+				// Recorrido del eje Y para filas
+				for(int x = 0; x < ancho; x++) {
+					
+					// getRGB obtiene el color empaquetado del píxel en la coordenada actual
+					pixel = buffer.getRGB(x, y);
+
+					/* DESEMPAQUETADO (Bit Shifting):
+					   Cada canal ocupa 8 bits en un entero de 32 bits.
+					   Usamos >> (desplazamiento a la derecha) para mover el canal al final 
+					   y & mascara para extraer únicamente esos 8 bits.
+					*/
+					//a = (pixel >> 24) & mascara; // Alpha está en los bits 24-31
+					r = (pixel >> 16) & mascara; // Rojo está en los bits 16-23
+					g = (pixel >> 8)  & mascara; // Verde está en los bits 8-15
+					b = (pixel >> 0)  & mascara; // Azul está en los bits 0-7
+
+					// -------------------- SECCIÓN DE PROCESO -----------------
+					// Aquí es donde modificarías las variables a, r, g, b según el filtro.
+					// Ejemplo: r = 255 - r; crearía un efecto negativo.
+					
+					r1 = (int)(coloresSepia[0][0]*r + coloresSepia[0][1]*g + coloresSepia[0][2]*b);
+					g1 = (int)(coloresSepia[1][0]*r + coloresSepia[1][1]*g + coloresSepia[1][2]*b);
+					b1 = (int)(coloresSepia[2][0]*r + coloresSepia[2][1]*g + coloresSepia[2][2]*b);
+					
+					r1 = Math.min(255, Math.max(0, r1));
+					g1 = Math.min(255, Math.max(0, g1));
+					b1 = Math.min(255, Math.max(0, b1));
+					
+					
+					// ---------------------------------------------------------
+
+					/* RECONSTRUCCIÓN (Bit Packing):
+					   Usamos << (desplazamiento a la izquierda) para devolver cada canal a su posición.
+					   Usamos | (OR binario) para "pegar" todos los canales en un solo número entero.
+					*/
+					pixelNuevo = (r1 << 16) | (g1 << 8) | (b1 << 0);
+
+					// Asignamos el nuevo color al píxel correspondiente en la imagen de salida
+					buffer2.setRGB(x, y, pixelNuevo);
+				}
+			}
+
+			// ImageIO.write toma el buffer procesado y lo codifica como un archivo PNG en el disco
+			ImageIO.write(buffer2, "png", file2);
+			
+			// Mensaje de control para saber que el programa terminó sin errores
+			System.out.println("Correcto");
+			
+		} catch (Exception e) {
+			// Si el archivo no existe o no hay permisos, se captura el error aquí
+			System.out.println("Error: " + e.getMessage());
+		}
+	}
+
+}
+-----------------------------------------------------------------------------------------------------
+					MATRIZ COLORES
+-----------------------------------------------------------------------------------------------------
+package efectos;
+
+import java.awt.image.BufferedImage;
+import java.io.File;
+
+import javax.imageio.ImageIO;
+
+public class MatricesColores {
+	public static void main(String[] args) {
+		// Declaración de variables para dimensiones, el color del píxel y sus canales individuales
+		int ancho, alto, pixel, pixelNuevo, a, r, g, b;
+		int r1,g1,b1;
+		
+		// La máscara 0xFF equivale a 255 en decimal o 11111111 en binario.
+		// Se usa para "limpiar" los bits y quedarnos solo con los últimos 8 bits (un canal).
+		int mascara = 0xFF;
+	
+
+		// Referencia al archivo físico de entrada
+		File file = new File("imagenes/paisaje.jpg");
+		// Referencia al archivo físico donde guardaremos el resultado
+		File file2 = new File("imagenes/MatrizSepia.jpg"); 
+
+		try {
+			float[][] colores = {
+				{0.299f, 0.587f, 0.114f,0.0f},
+				{0.299f, 0.587f, 0.114f,0.0f},
+				{0.299f, 0.587f, 0.114f,0.0f},
+				{0.0f,   0.0f,   0.0f,  1.0f}
+			};
+			float[][] coloresSepia = {
+					{0.393f, 0.769f, 0.189f,0.0f},
+					{0.349f, 0.686f, 0.198f,0.0f},
+					{0.272f, 0.534f, 0.131f,0.0f},
+					{0.0f,   0.0f,   0.0f,  1.0f}
+				};
+			// ImageIO.read carga la imagen del disco y la convierte en un objeto manipulable
+			BufferedImage buffer = ImageIO.read(file);
+			
+			// Obtenemos el tamaño de la imagen original para replicarlo en la salida
+			ancho = buffer.getWidth();
+			alto = buffer.getHeight();
+
+			// Creamos un nuevo "lienzo" en memoria. 
+			// TYPE_INT_ARGB: Indica que cada píxel se guarda como un entero con Alpha, Rojo, Verde y Azul.
+			BufferedImage buffer2 = new BufferedImage(ancho, alto, BufferedImage.TYPE_INT_RGB);
+
+			// Iniciamos el recorrido de la matriz de la imagen (eje X para columnas)
+			for(int y = 0; y < alto; y++) {
+				// Recorrido del eje Y para filas
+				for(int x = 0; x < ancho; x++) {
+					
+					// getRGB obtiene el color empaquetado del píxel en la coordenada actual
+					pixel = buffer.getRGB(x, y);
+
+					/* DESEMPAQUETADO (Bit Shifting):
+					   Cada canal ocupa 8 bits en un entero de 32 bits.
+					   Usamos >> (desplazamiento a la derecha) para mover el canal al final 
+					   y & mascara para extraer únicamente esos 8 bits.
+					*/
+					//a = (pixel >> 24) & mascara; // Alpha está en los bits 24-31
+					r = (pixel >> 16) & mascara; // Rojo está en los bits 16-23
+					g = (pixel >> 8)  & mascara; // Verde está en los bits 8-15
+					b = (pixel >> 0)  & mascara; // Azul está en los bits 0-7
+
+					// -------------------- SECCIÓN DE PROCESO -----------------
+					// Aquí es donde modificarías las variables a, r, g, b según el filtro.
+					// Ejemplo: r = 255 - r; crearía un efecto negativo.
+					
+					r1 = (int)(coloresSepia[0][0]*r + coloresSepia[0][1]*g + coloresSepia[0][2]*b);
+					g1 = (int)(coloresSepia[1][0]*r + coloresSepia[1][1]*g + coloresSepia[1][2]*b);
+					b1 = (int)(coloresSepia[2][0]*r + coloresSepia[2][1]*g + coloresSepia[2][2]*b);
+					
+					r1 = Math.min(255, Math.max(0, r1));
+					g1 = Math.min(255, Math.max(0, g1));
+					b1 = Math.min(255, Math.max(0, b1));
+					
+					
+					// ---------------------------------------------------------
+
+					/* RECONSTRUCCIÓN (Bit Packing):
+					   Usamos << (desplazamiento a la izquierda) para devolver cada canal a su posición.
+					   Usamos | (OR binario) para "pegar" todos los canales en un solo número entero.
+					*/
+					pixelNuevo = (r1 << 16) | (g1 << 8) | (b1 << 0);
+
+					// Asignamos el nuevo color al píxel correspondiente en la imagen de salida
+					buffer2.setRGB(x, y, pixelNuevo);
+				}
+			}
+
+			// ImageIO.write toma el buffer procesado y lo codifica como un archivo PNG en el disco
+			ImageIO.write(buffer2, "png", file2);
+			
+			// Mensaje de control para saber que el programa terminó sin errores
+			System.out.println("Correcto");
+			
+		} catch (Exception e) {
+			// Si el archivo no existe o no hay permisos, se captura el error aquí
+			System.out.println("Error: " + e.getMessage());
+		}
+	}
+
+}
+
+-----------------------------------------------------------------------
+			blending con 3 clores
+------------------------------------------------------------------------
+package efectos;
+
+import java.awt.Graphics2D;
+import java.awt.Image;
+import java.awt.image.BufferedImage;
+import java.io.File;
+
+import javax.imageio.ImageIO;
+
+public class practica {
+
+	public static void main(String[] args) {
+
+		// Variables
+		int ancho, alto;
+
+		int pixel1, pixel2, pixel3, pixelBlend;
+
+		int r, g, b;
+
+		int r1, g1, b1;
+		int r2, g2, b2;
+		int r3, g3, b3;
+
+		// Transparencias
+		float alpha = 0.4f;
+
+		// Máscara RGB
+		int mascara = 0xFF;
+
+		// Archivos
+		File file1 = new File("imagenes/fondo.jpg");
+		File file2 = new File("imagenes/superpuesta.jpg");
+		File file3 = new File("imagenes/perro.jpg");
+
+		File fileSalida = new File("imagenes/transparencia3.png");
+
+		try {
+
+			// Leer imágenes
+			BufferedImage buffer1 = ImageIO.read(file1);
+			BufferedImage buffer2 = ImageIO.read(file2);
+			BufferedImage buffer3 = ImageIO.read(file3);
+
+			// Dimensiones base
+			ancho = buffer1.getWidth();
+			alto = buffer1.getHeight();
+
+			// escalar imagen 2
+
+			Image imgTemp2 = buffer2.getScaledInstance(ancho, alto, Image.SCALE_FAST);
+
+			BufferedImage bufferTemp2 = new BufferedImage(ancho, alto, BufferedImage.TYPE_INT_RGB);
+
+			Graphics2D g2d2 = bufferTemp2.createGraphics();
+			g2d2.drawImage(imgTemp2, 0, 0, null);
+			g2d2.dispose();
+
+			buffer2 = bufferTemp2;
+
+			// escalar imagen
+
+			Image imgTemp3 = buffer3.getScaledInstance(ancho, alto, Image.SCALE_FAST);
+
+			BufferedImage bufferTemp3 = new BufferedImage(ancho, alto, BufferedImage.TYPE_INT_RGB);
+
+			Graphics2D g2d3 = bufferTemp3.createGraphics();
+			g2d3.drawImage(imgTemp3, 0, 0, null);
+			g2d3.dispose();
+
+			buffer3 = bufferTemp3;
+
+			BufferedImage bufferBlend = new BufferedImage(ancho, alto, BufferedImage.TYPE_INT_RGB);
+
+			for (int y = 0; y < alto; y++) {
+
+				for (int x = 0; x < ancho; x++) {
+
+					pixel1 = buffer1.getRGB(x, y);
+					pixel2 = buffer2.getRGB(x, y);
+					pixel3 = buffer3.getRGB(x, y);
+
+					r1 = (pixel1 >> 16) & mascara;
+					g1 = (pixel1 >> 8) & mascara;
+					b1 = pixel1 & mascara;
+
+					r2 = (pixel2 >> 16) & mascara;
+					g2 = (pixel2 >> 8) & mascara;
+					b2 = pixel2 & mascara;
+
+					r3 = (pixel3 >> 16) & mascara;
+					g3 = (pixel3 >> 8) & mascara;
+					b3 = pixel3 & mascara;
+
+					// BLENDING DE 3
+
+					r = (int)  (((1 - alpha) * r3) + alpha * ((1 - alpha) * r1 + alpha * r2));
+
+					g = (int) (((1 - alpha) * g3) + alpha * ((1 - alpha) * g1 + alpha * g2));
+
+					b = (int) (((1 - alpha) * b3) + alpha * ((1 - alpha) * b1 + alpha * b2));
+
+					// Limitar rango 0-255
+					r = Math.min(255, r);
+					g = Math.min(255, g);
+					b = Math.min(255, b);
+
+					// Reconstruir pixel
+					pixelBlend = (r << 16) | (g << 8) | b;
+
+					// Guardar pixel
+					bufferBlend.setRGB(x, y, pixelBlend);
+				}
+			}
+
+			// Guardar resultado
+			ImageIO.write(bufferBlend, "png", fileSalida);
+
+			System.out.println("Blending de 3 imágenes realizado correctamente");
+
+		} catch (Exception e) {
+
+			System.out.println("Error: " + e.getMessage());
+		}
+	}
+}
+
