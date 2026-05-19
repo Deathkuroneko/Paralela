@@ -1,1 +1,0 @@
-rootProject.name = "O2Fractal_Java"
