@@ -1,3 +1,0 @@
-C:/tools/Programacion_Paralela_2026/Ejemplo_01/build/CMakeFiles/ejemplo_01.dir
-C:/tools/Programacion_Paralela_2026/Ejemplo_01/build/CMakeFiles/edit_cache.dir
-C:/tools/Programacion_Paralela_2026/Ejemplo_01/build/CMakeFiles/rebuild_cache.dir
