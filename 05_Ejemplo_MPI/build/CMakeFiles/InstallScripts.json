@@ -1,0 +1,11 @@
+{
+	"Configs" : 
+	[
+		"Debug"
+	],
+	"InstallScripts" : 
+	[
+		"C:/tools/progr_paralela/05_Ejemplo_MPI/build/cmake_install.cmake"
+	],
+	"Parallel" : false
+}

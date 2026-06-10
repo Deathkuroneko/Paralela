@@ -1,0 +1,20 @@
+[
+{
+  "directory": "C:/tools/progr_paralela/05_Ejemplo_MPI/build",
+  "command": "C:\\tools\\mingw64\\bin\\g++.exe -DFMT_SHARED -DCMAKE_INTDIR=\\\"Debug\\\" -Ic:/openAPI/mpi/latest/include -isystem C:/tools/vcpkg-2026.03.18/installed/x64-mingw-dynamic/include -g -o CMakeFiles\\matrices-relleno.dir\\Debug\\matrices_relleno.cpp.obj -c C:\\tools\\progr_paralela\\05_Ejemplo_MPI\\matrices_relleno.cpp",
+  "file": "C:/tools/progr_paralela/05_Ejemplo_MPI/matrices_relleno.cpp",
+  "output": "C:/tools/progr_paralela/05_Ejemplo_MPI/build/CMakeFiles/matrices-relleno.dir/Debug/matrices_relleno.cpp.obj"
+},
+{
+  "directory": "C:/tools/progr_paralela/05_Ejemplo_MPI/build",
+  "command": "C:\\tools\\mingw64\\bin\\g++.exe -DFMT_SHARED -DCMAKE_INTDIR=\\\"Release\\\" -Ic:/openAPI/mpi/latest/include -isystem C:/tools/vcpkg-2026.03.18/installed/x64-mingw-dynamic/include -O3 -DNDEBUG -o CMakeFiles\\matrices-relleno.dir\\Release\\matrices_relleno.cpp.obj -c C:\\tools\\progr_paralela\\05_Ejemplo_MPI\\matrices_relleno.cpp",
+  "file": "C:/tools/progr_paralela/05_Ejemplo_MPI/matrices_relleno.cpp",
+  "output": "C:/tools/progr_paralela/05_Ejemplo_MPI/build/CMakeFiles/matrices-relleno.dir/Release/matrices_relleno.cpp.obj"
+},
+{
+  "directory": "C:/tools/progr_paralela/05_Ejemplo_MPI/build",
+  "command": "C:\\tools\\mingw64\\bin\\g++.exe -DFMT_SHARED -DCMAKE_INTDIR=\\\"RelWithDebInfo\\\" -Ic:/openAPI/mpi/latest/include -isystem C:/tools/vcpkg-2026.03.18/installed/x64-mingw-dynamic/include -O2 -g -DNDEBUG -o CMakeFiles\\matrices-relleno.dir\\RelWithDebInfo\\matrices_relleno.cpp.obj -c C:\\tools\\progr_paralela\\05_Ejemplo_MPI\\matrices_relleno.cpp",
+  "file": "C:/tools/progr_paralela/05_Ejemplo_MPI/matrices_relleno.cpp",
+  "output": "C:/tools/progr_paralela/05_Ejemplo_MPI/build/CMakeFiles/matrices-relleno.dir/RelWithDebInfo/matrices_relleno.cpp.obj"
+}
+]
