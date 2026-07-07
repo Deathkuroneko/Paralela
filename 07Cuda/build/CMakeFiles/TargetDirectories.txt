@@ -1,0 +1,3 @@
+C:/tools/Programacion_Paralela_2026/07Cuda/build/CMakeFiles/07cuda.dir
+C:/tools/Programacion_Paralela_2026/07Cuda/build/CMakeFiles/edit_cache.dir
+C:/tools/Programacion_Paralela_2026/07Cuda/build/CMakeFiles/rebuild_cache.dir
