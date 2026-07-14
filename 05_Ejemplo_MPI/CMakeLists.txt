@@ -6,7 +6,7 @@ project(01_FRACTAL_JULIA)
 find_package(fmt CONFIG REQUIRED)
 
 #--config mpi
-set(MPI_ROOT "c:/openAPI/mpi/latest")
+set(MPI_ROOT "c:/oneAPI/mpi/latest")
 set(MPI_INCLUDE "${MPI_ROOT}/include")
 set(MPI_LIB "${MPI_ROOT}/lib")
 
@@ -15,12 +15,12 @@ include_directories(
      )
 
 
-add_executable(matrices-relleno
+add_executable(PruebaColectivoImagen
 
-matrices_relleno.cpp
+PruebaColectivoImagen.cpp
 )
 
-target_link_libraries(matrices-relleno PRIVATE 
+target_link_libraries(PruebaColectivoImagen PRIVATE 
 fmt::fmt 
 ${MPI_LIB}/impi.lib
 )
